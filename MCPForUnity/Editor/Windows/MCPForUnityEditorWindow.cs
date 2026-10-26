@@ -116,15 +116,26 @@ namespace MCPForUnity.Editor.Windows
             window.titleContent = new GUIContent(ProductInfo.ProductName);
             window.minSize = new Vector2(500, 340);
 
-            if (window.position.width < 100 || window.position.height < 100)
+            // A floating window can come back off-screen (for example at a minimized or disconnected-monitor
+            // position saved by an earlier session); centre it on the main editor window in that case.
+            Rect mainWindow = EditorGUIUtility.GetMainWindowPosition();
+            if (window.position.width < 100 || window.position.height < 100
+                || (!window.docked && !mainWindow.Overlaps(window.position)))
             {
-                window.position = new Rect(120, 120, 900, 700);
+                window.position = new Rect(
+                    mainWindow.x + Mathf.Max(0f, (mainWindow.width - 900f) / 2f),
+                    mainWindow.y + Mathf.Max(0f, (mainWindow.height - 700f) / 2f),
+                    900, 700);
             }
 
             window.Show();
             window.ShowTab();
             window.Focus();
             window.EnsureGuiCreated();
+
+            McpLog.Info($"[Window] Opened: instances={existingWindows.Length}, uiBuilt={window.guiCreated}, " +
+                        $"elements={window.rootVisualElement.childCount}, docked={window.docked}, " +
+                        $"position={window.position}, editor={mainWindow}");
         }
 
         // Unity 2020.3 does not reliably call CreateGUI again for a window restored after a domain
