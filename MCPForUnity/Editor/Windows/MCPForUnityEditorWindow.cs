@@ -98,8 +98,17 @@ namespace MCPForUnity.Editor.Windows
                         McpLog.Warn($"Error closing duplicate MCP window: {ex.Message}");
                     }
                 }
+
+                // A window whose UI was never built (its CreateGUI failed or was not re-run after a domain
+                // reload, as happens on Unity 2020.3) shows up blank, so replace it with a fresh one.
+                if (!window.guiCreated)
+                {
+                    window.Close();
+                    window = null;
+                }
             }
-            else
+
+            if (window == null)
             {
                 window = GetWindow<MCPForUnityEditorWindow>(ProductInfo.ProductName);
             }
@@ -115,6 +124,17 @@ namespace MCPForUnity.Editor.Windows
             window.Show();
             window.ShowTab();
             window.Focus();
+            window.EnsureGuiCreated();
+        }
+
+        // Unity 2020.3 does not reliably call CreateGUI again for a window restored after a domain
+        // reload, which leaves it blank. Build the UI here whenever it is missing.
+        private void EnsureGuiCreated()
+        {
+            if (this == null || guiCreated)
+                return;
+
+            CreateGUI();
         }
 
         // Helper to check and manage open windows from other classes
@@ -580,6 +600,7 @@ namespace MCPForUnity.Editor.Windows
         {
             EditorApplication.update += OnEditorUpdate;
             OpenWindows.Add(this);
+            EditorApplication.delayCall += EnsureGuiCreated;
         }
 
         private void OnDisable()
@@ -593,6 +614,12 @@ namespace MCPForUnity.Editor.Windows
 
         private void OnFocus()
         {
+            if (!guiCreated)
+            {
+                EnsureGuiCreated();
+                return;
+            }
+
             // Only refresh data if UI is built
             if (rootVisualElement == null || rootVisualElement.childCount == 0)
                 return;

@@ -91,6 +91,17 @@ namespace MCPForUnity.Editor.Windows
             window.Show();
         }
 
+        private void OnEnable()
+        {
+            // Unity 2020.3 does not reliably call CreateGUI again for a window restored after a domain
+            // reload, which leaves it blank. Build the UI here if it is missing.
+            EditorApplication.delayCall += () =>
+            {
+                if (this != null && rootVisualElement.childCount == 0)
+                    CreateGUI();
+            };
+        }
+
         public void CreateGUI()
         {
             // Clear search filter on GUI recreation to avoid stale filtered results
