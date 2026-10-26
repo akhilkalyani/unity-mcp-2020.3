@@ -1,8 +1,9 @@
 # MCP for Unity: Unity 2020.3 backport
 
 This branch (`unity-2020.3`) is [CoplayDev/unity-mcp](https://github.com/CoplayDev/unity-mcp) **v10.3.0**
-with the Unity package (`MCPForUnity/`) ported to **Unity 2020.3 LTS** (tested against 2020.3.40f1).
-Upstream supports only 2021.3 and newer.
+with the Unity package (`MCPForUnity/`) ported to **Unity 2020.3 LTS**. Upstream supports only 2021.3 and
+newer. Verified in Unity 2020.3.40f1: the package compiles, the MCP window opens, the server starts and
+the editor executes tool calls (scene, console and object queries).
 
 Only the C# editor package changed. The Python MCP server is the upstream release, unchanged:
 `mcpforunityserver==10.3.0` from PyPI, which the package starts through `uvx` as before. Requirements
@@ -17,7 +18,7 @@ Pick one of:
   ```json
   "com.coplaydev.unity-mcp": "https://github.com/akhilkalyani/unity-mcp-2020.3.git?path=/MCPForUnity#unity-2020.3"
   ```
-  Replace `#unity-2020.3` with a tag (for example `#v10.3.0-unity2020.3-r2`) to pin an exact build.
+  Replace `#unity-2020.3` with the tag `#v10.3.0-unity2020.3` to pin the released build.
 - **Tarball inside the project repo (no network access needed):** build it with
   `python -I tools/unity-2020.3-backport/pack.py --revision <N>`, which writes
   `dist/com.coplaydev.unity-mcp-10.3.0-unity2020.3-r<N>.tgz` (about 700 KB). Copy it into the project
@@ -56,6 +57,20 @@ Then, in Unity: **Window → MCP for Unity**, start the server, and configure yo
 the window runs `claude mcp add` for you). After that, prompt your client as usual, for example
 *"Create a cube at the origin and add a Rigidbody."*
 
+## Updating and troubleshooting
+
+- **Getting a newer commit:** Unity locks a Git package to the commit it first downloaded (the `hash` in
+  `Packages/packages-lock.json`) and does not follow the branch by itself. To update, remove the
+  `com.coplaydev.unity-mcp` entry from `packages-lock.json`, or change the `#…` part of the URL in
+  `manifest.json` (Unity only re-resolves when the manifest's text changes; touching the file is not enough).
+- **`EBUSY: resource busy or locked, rmdir …\Library\PackageCache\.tmp-…\clone`:** a scanner (usually the
+  antivirus) held the downloaded files while Unity cleaned up, and Unity then removes the package. Delete the
+  leftover `.tmp-…` folder and make Unity resolve again as above; excluding `Library\PackageCache` from
+  real-time scanning avoids it.
+- **The MCP window does not appear:** use **Window → MCP for Unity → Toggle MCP Window** again. It replaces a
+  window that never finished building (for example after an error in an earlier session) with a fresh one,
+  and logs `[Window] Opened: …` to the console with its state.
+
 ## What differs on 2020.3
 
 Everything compiles and loads on 2020.3. A few features rely on Unity APIs that 2020.3 does not have:
@@ -73,7 +88,9 @@ Everything compiles and loads on 2020.3. A few features rely on Unity APIs that 
 | Editor window: update notification | Disabled, because upstream releases require 2021.3+. |
 
 The editor window's dropdowns use a small `PopupField`-based stand-in for `DropdownField`
-(`Editor/Compat/DropdownField.cs`).
+(`Editor/Compat/DropdownField.cs`). Unity 2020.3 also does not reliably call `CreateGUI` again for a
+window restored after a domain reload, so the package's windows rebuild their UI themselves when it is
+missing.
 
 ## How the port was done
 
