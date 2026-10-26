@@ -49,7 +49,7 @@ namespace MCPForUnity.Editor.Windows
         private VisualElement resourcesPanel;
         private VisualElement assetGenPanel;
 
-        private static readonly HashSet<MCPForUnityEditorWindow> OpenWindows = new();
+        private static readonly HashSet<MCPForUnityEditorWindow> OpenWindows = new HashSet<MCPForUnityEditorWindow>();
         private bool guiCreated = false;
         private bool toolsLoaded = false;
         private bool resourcesLoaded = false;
@@ -425,6 +425,8 @@ namespace MCPForUnity.Editor.Windows
 
         private void QueueUpdateCheck()
         {
+            // Upstream releases require Unity 2021.3+, so this 2020.3 backport never offers them as updates.
+#if UNITY_2021_3_OR_NEWER
             if (updateCheckQueued || updateCheckInFlight)
             {
                 return;
@@ -432,6 +434,7 @@ namespace MCPForUnity.Editor.Windows
 
             updateCheckQueued = true;
             EditorApplication.delayCall += CheckForPackageUpdates;
+#endif
         }
 
         private void CheckForPackageUpdates()
@@ -1053,30 +1056,46 @@ namespace MCPForUnity.Editor.Windows
 
         private static void BatchUpmAdd(string[] packageIds, Action onComplete = null)
         {
-            var request = UnityEditor.PackageManager.Client.AddAndRemove(packageIds, null);
             EditorUtility.DisplayProgressBar("Installing Packages", $"Installing {packageIds.Length} package(s)...", 0.5f);
-            PollUpmRequest(request, "install", onComplete);
+            RunUpmSequence(packageIds, id => UnityEditor.PackageManager.Client.Add(id), "install", onComplete);
         }
 
         private static void BatchUpmRemove(string[] packageIds, Action onComplete = null)
         {
-            var request = UnityEditor.PackageManager.Client.AddAndRemove(null, packageIds);
             EditorUtility.DisplayProgressBar("Removing Packages", $"Removing {packageIds.Length} package(s)...", 0.5f);
-            PollUpmRequest(request, "remove", onComplete);
+            RunUpmSequence(packageIds, id => UnityEditor.PackageManager.Client.Remove(id), "remove", onComplete);
         }
 
-        private static void PollUpmRequest(UnityEditor.PackageManager.Requests.AddAndRemoveRequest request, string verb, Action onComplete)
+        // Client.AddAndRemove does not exist before Unity 2021.2, so packages are processed one at a
+        // time, with assembly reloads held off until the whole batch has finished.
+        private static void RunUpmSequence(string[] packageIds, Func<string, UnityEditor.PackageManager.Requests.Request> start, string verb, Action onComplete)
         {
+            int next = 0;
+            bool failed = false;
+            UnityEditor.PackageManager.Requests.Request request = null;
+            EditorApplication.LockReloadAssemblies();
             EditorApplication.CallbackFunction pollCallback = null;
             pollCallback = () =>
             {
-                if (!request.IsCompleted) return;
+                if (request != null)
+                {
+                    if (!request.IsCompleted) return;
+                    if (request.Status != UnityEditor.PackageManager.StatusCode.Success)
+                    {
+                        failed = true;
+                        Debug.LogError($"[MCP] Package {verb} failed for '{packageIds[next - 1]}': {request.Error?.message}");
+                    }
+                }
+                if (next < packageIds.Length)
+                {
+                    request = start(packageIds[next++]);
+                    return;
+                }
                 EditorApplication.update -= pollCallback;
                 EditorUtility.ClearProgressBar();
-                if (request.Status == UnityEditor.PackageManager.StatusCode.Success)
+                EditorApplication.UnlockReloadAssemblies();
+                if (!failed)
                     Debug.Log($"[MCP] Package {verb} succeeded.");
-                else
-                    Debug.LogError($"[MCP] Package {verb} failed: {request.Error?.message}");
                 onComplete?.Invoke();
             };
             EditorApplication.update += pollCallback;

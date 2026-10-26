@@ -215,7 +215,12 @@ namespace MCPForUnity.Editor.Tools
                     target = EditorUserBuildSettings.activeBuildTarget.ToString(),
                     target_group = BuildTargetMapping.GetTargetGroup(
                         EditorUserBuildSettings.activeBuildTarget).ToString(),
+#if UNITY_2021_2_OR_NEWER
                     subtarget = EditorUserBuildSettings.standaloneBuildSubtarget.ToString()
+#else
+                    subtarget = (EditorUserBuildSettings.enableHeadlessMode
+                        ? StandaloneBuildSubtarget.Server : StandaloneBuildSubtarget.Player).ToString()
+#endif
                 });
             }
 
@@ -241,10 +246,17 @@ namespace MCPForUnity.Editor.Tools
             if (!string.IsNullOrEmpty(subtargetStr))
             {
                 string subtargetLower = subtargetStr.ToLowerInvariant();
+#if UNITY_2021_2_OR_NEWER
                 if (subtargetLower == "server")
                     EditorUserBuildSettings.standaloneBuildSubtarget = StandaloneBuildSubtarget.Server;
                 else if (subtargetLower == "player")
                     EditorUserBuildSettings.standaloneBuildSubtarget = StandaloneBuildSubtarget.Player;
+#else
+                if (subtargetLower == "server")
+                    EditorUserBuildSettings.enableHeadlessMode = true;
+                else if (subtargetLower == "player")
+                    EditorUserBuildSettings.enableHeadlessMode = false;
+#endif
             }
 
             // SwitchActiveBuildTarget is synchronous — blocks until reimport completes

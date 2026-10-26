@@ -144,7 +144,9 @@ namespace MCPForUnity.Editor.Tools.Profiler
                 case "vr": return ProfilerCategory.Vr;
                 case "internal": return ProfilerCategory.Internal;
                 case "particles": return ProfilerCategory.Particles;
+#if UNITY_2021_3_OR_NEWER
                 case "fileio": return ProfilerCategory.FileIO;
+#endif
                 case "virtualtexturing": return ProfilerCategory.VirtualTexturing;
                 default:
                     error = $"Unknown category '{name}'. Valid: {string.Join(", ", ValidCategories)}";

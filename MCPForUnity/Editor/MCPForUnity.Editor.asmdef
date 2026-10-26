@@ -2,7 +2,9 @@
     "name": "MCPForUnity.Editor",
     "rootNamespace": "MCPForUnity.Editor",
     "references": [
-        "MCPForUnity.Runtime"
+        "MCPForUnity.Runtime",
+        "UnityEditor.TestRunner",
+        "UnityEngine.TestRunner"
     ],
     "includePlatforms": [
         "Editor"

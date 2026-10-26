@@ -19,11 +19,11 @@ namespace MCPForUnity.Editor.Tools
     public static class ManagePackages
     {
         // Pending async requests keyed by job ID
-        private static readonly Dictionary<string, Request> PendingRequests = new();
+        private static readonly Dictionary<string, Request> PendingRequests = new Dictionary<string, Request>();
 
         // Pending list/search requests keyed by job ID
-        private static readonly Dictionary<string, ListRequest> PendingListRequests = new();
-        private static readonly Dictionary<string, SearchRequest> PendingSearchRequests = new();
+        private static readonly Dictionary<string, ListRequest> PendingListRequests = new Dictionary<string, ListRequest>();
+        private static readonly Dictionary<string, SearchRequest> PendingSearchRequests = new Dictionary<string, SearchRequest>();
 
         public static object HandleCommand(JObject @params)
         {
@@ -360,7 +360,7 @@ namespace MCPForUnity.Editor.Tools
 
             try
             {
-                var allPackages = PackageInfo.GetAllRegisteredPackages();
+                var allPackages = PackageInfoCompat.GetAllRegisteredPackages();
                 var info = allPackages.FirstOrDefault(pkg =>
                     string.Equals(pkg.name, package, StringComparison.OrdinalIgnoreCase));
 
@@ -593,7 +593,7 @@ namespace MCPForUnity.Editor.Tools
         {
             try
             {
-                var allPackages = PackageInfo.GetAllRegisteredPackages();
+                var allPackages = PackageInfoCompat.GetAllRegisteredPackages();
                 return new SuccessResponse(
                     "Package manager is available.",
                     new
@@ -721,7 +721,7 @@ namespace MCPForUnity.Editor.Tools
             {
                 string name = PackageJobManager.ExtractPackageName(packageName);
 
-                var allPackages = PackageInfo.GetAllRegisteredPackages();
+                var allPackages = PackageInfoCompat.GetAllRegisteredPackages();
                 return allPackages
                     .Where(pkg => pkg.dependencies.Any(d =>
                         string.Equals(d.name, name, StringComparison.OrdinalIgnoreCase)))

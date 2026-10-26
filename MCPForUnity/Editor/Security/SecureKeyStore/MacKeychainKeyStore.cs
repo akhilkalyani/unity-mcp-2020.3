@@ -49,7 +49,7 @@ namespace MCPForUnity.Editor.Security
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                 };
-                foreach (string a in args) psi.ArgumentList.Add(a);
+                foreach (string a in args) psi.AddArgument(a);
                 using (var p = Process.Start(psi))
                 {
                     string outp = p.StandardOutput.ReadToEnd();

@@ -1,3 +1,11 @@
+> [!IMPORTANT]
+> **Unofficial Unity 2020.3 backport.** This branch is a community port of
+> [CoplayDev/unity-mcp](https://github.com/CoplayDev/unity-mcp) v10.3.0 to Unity **2020.3 LTS**; it is not
+> maintained by Coplay/Aura. Install with the Git URL
+> `https://github.com/akhilkalyani/unity-mcp-2020.3.git?path=/MCPForUnity#unity-2020.3` and see
+> [UNITY-2020.3.md](UNITY-2020.3.md) for setup and what differs from upstream. For Unity 2021.3 and newer,
+> use the official package below.
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/logo-header-dark.png">

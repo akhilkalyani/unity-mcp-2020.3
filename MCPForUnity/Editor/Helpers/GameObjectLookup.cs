@@ -4,6 +4,9 @@ using System.Linq;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
+#if !UNITY_2021_2_OR_NEWER
+using UnityEditor.Experimental.SceneManagement;
+#endif
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using MCPForUnity.Runtime.Helpers;

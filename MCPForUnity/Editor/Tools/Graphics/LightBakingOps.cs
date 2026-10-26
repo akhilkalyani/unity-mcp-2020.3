@@ -151,7 +151,11 @@ namespace MCPForUnity.Editor.Tools.Graphics
                 ["indirectSampleCount"] = settings.indirectSampleCount,
                 ["environmentSampleCount"] = settings.environmentSampleCount,
                 ["mixedBakeMode"] = settings.mixedBakeMode.ToString(),
+#if UNITY_2021_2_OR_NEWER
                 ["lightmapCompression"] = settings.lightmapCompression.ToString(),
+#else
+                ["lightmapCompression"] = settings.compressLightmaps ? "NormalQuality" : "None",
+#endif
                 ["ao"] = settings.ao,
                 ["aoMaxDistance"] = settings.aoMaxDistance
             };
@@ -511,6 +515,7 @@ namespace MCPForUnity.Editor.Tools.Graphics
                 case "lightmapcompression":
                 case "lightmap_compression":
                     var strVal = value?.ToString() ?? "";
+#if UNITY_2021_2_OR_NEWER
                     if (System.Enum.TryParse<LightmapCompression>(strVal, true, out var compression))
                         settings.lightmapCompression = compression;
                     else if (bool.TryParse(strVal, out var boolVal))
@@ -520,6 +525,19 @@ namespace MCPForUnity.Editor.Tools.Graphics
                         settings.lightmapCompression = (LightmapCompression)intVal;
                     else
                         return false;
+#else
+                    // Before 2021.2 LightingSettings only has an on/off compressLightmaps flag.
+                    if (bool.TryParse(strVal, out var boolVal))
+                        settings.compressLightmaps = boolVal;
+                    else if (int.TryParse(strVal, out var intVal))
+                        settings.compressLightmaps = intVal != 0;
+                    else if (string.Equals(strVal, "None", System.StringComparison.OrdinalIgnoreCase))
+                        settings.compressLightmaps = false;
+                    else if (strVal.EndsWith("Quality", System.StringComparison.OrdinalIgnoreCase))
+                        settings.compressLightmaps = true;
+                    else
+                        return false;
+#endif
                     return true;
 
                 case "ao":

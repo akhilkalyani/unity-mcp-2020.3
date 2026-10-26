@@ -71,7 +71,12 @@ namespace MCPForUnity.Editor.Tools.Build
                 || target == BuildTarget.StandaloneOSX
                 || target == BuildTarget.StandaloneLinux64)
             {
+#if UNITY_2021_2_OR_NEWER
                 options.subtarget = subtarget;
+#else
+                if (subtarget == (int)StandaloneBuildSubtarget.Server)
+                    options.options |= BuildOptions.EnableHeadlessMode;
+#endif
             }
 
             return options;
@@ -89,7 +94,11 @@ namespace MCPForUnity.Editor.Tools.Build
             {
                 switch (name.ToLowerInvariant())
                 {
+#if UNITY_2021_2_OR_NEWER
                     case "clean_build": opts |= BuildOptions.CleanBuildCache; break;
+#else
+                    case "clean_build": break; // BuildOptions.CleanBuildCache does not exist before 2021.2
+#endif
                     case "auto_run": opts |= BuildOptions.AutoRunPlayer; break;
                     case "deep_profiling": opts |= BuildOptions.EnableDeepProfilingSupport; break;
                     case "compress_lz4": opts |= BuildOptions.CompressWithLz4; break;

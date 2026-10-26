@@ -2,6 +2,9 @@ using System;
 using MCPForUnity.Editor.Helpers;
 using Newtonsoft.Json.Linq;
 using UnityEditor.SceneManagement;
+#if !UNITY_2021_2_OR_NEWER
+using UnityEditor.Experimental.SceneManagement;
+#endif
 
 namespace MCPForUnity.Editor.Resources.Editor
 {

@@ -1,5 +1,7 @@
 # MCP for Unity — Editor Plugin Guide
 
+> **Unity 2020.3 backport** of MCP for Unity v10.3.0. See `UNITY-2020.3.md` in the repository root for installation notes and what differs from upstream.
+
 Use this guide to configure and run MCP for Unity inside the Unity Editor. Installation is covered elsewhere; this document focuses on the Editor window, client configuration, and troubleshooting.
 
 ## Open the window

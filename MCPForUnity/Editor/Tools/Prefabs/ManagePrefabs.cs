@@ -6,6 +6,12 @@ using MCPForUnity.Editor.Helpers;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
+#if !UNITY_2021_2_OR_NEWER
+using UnityEditor.Experimental.SceneManagement;
+#endif
+#if !UNITY_2021_2_OR_NEWER
+using UnityEditor.Experimental.SceneManagement;
+#endif
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using MCPForUnity.Runtime.Helpers;
@@ -419,7 +425,12 @@ namespace MCPForUnity.Editor.Tools.Prefabs
             string[] colorProps = { "_BaseColor", "_Color" };
             foreach (string prop in colorProps)
             {
+#if UNITY_2021_3_OR_NEWER
                 if (mat.HasProperty(prop) && block.HasColor(prop))
+#else
+                // MaterialPropertyBlock.HasColor is missing on 2020.3; an unset color reads back as (0,0,0,0).
+                if (mat.HasProperty(prop) && !block.isEmpty && block.GetColor(prop) != default(Color))
+#endif
                 {
                     mat.SetColor(prop, block.GetColor(prop));
                 }
@@ -958,7 +969,7 @@ namespace MCPForUnity.Editor.Tools.Prefabs
                         continue;
                     }
 
-                    if (entry.Value is not JObject props || !props.HasValues)
+                    if (!(entry.Value is JObject props) || !props.HasValues)
                     {
                         continue;
                     }
@@ -1311,7 +1322,13 @@ namespace MCPForUnity.Editor.Tools.Prefabs
                     return new ErrorResponse($"Prefab asset not found at '{sanitizedPath}'.");
                 }
 
+#if UNITY_2021_2_OR_NEWER
                 var prefabStage = PrefabStageUtility.OpenPrefab(sanitizedPath);
+#else
+                // PrefabStageUtility.OpenPrefab is not public on 2020.3; opening the asset enters Prefab Mode.
+                AssetDatabase.OpenAsset(prefabAsset);
+                var prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
+#endif
                 bool enteredStage = prefabStage != null
                     && string.Equals(prefabStage.assetPath, sanitizedPath, StringComparison.OrdinalIgnoreCase)
                     && prefabStage.prefabContentsRoot != null;

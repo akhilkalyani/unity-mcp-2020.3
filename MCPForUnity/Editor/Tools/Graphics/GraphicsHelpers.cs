@@ -6,6 +6,10 @@ using MCPForUnity.Editor.Helpers;
 using MCPForUnity.Runtime.Helpers;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
+using UnityEditor.SceneManagement;
+#if !UNITY_2021_2_OR_NEWER
+using UnityEditor.Experimental.SceneManagement;
+#endif
 using UnityEngine;
 
 namespace MCPForUnity.Editor.Tools.Graphics
@@ -257,7 +261,7 @@ namespace MCPForUnity.Editor.Tools.Graphics
             EditorUtility.SetDirty(obj);
             if (obj is Component comp)
             {
-                var prefabStage = UnityEditor.SceneManagement.PrefabStageUtility.GetCurrentPrefabStage();
+                var prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
                 if (prefabStage != null)
                     UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(prefabStage.scene);
                 else

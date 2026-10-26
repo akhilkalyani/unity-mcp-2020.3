@@ -1,5 +1,4 @@
 using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.WebSockets;
@@ -45,7 +44,7 @@ namespace MCPForUnity.Editor.Services.Transport.Transports
         private CancellationTokenSource _connectionCts;
         private Task _receiveTask;
         private Task _keepAliveTask;
-        private readonly SemaphoreSlim _sendLock = new(1, 1);
+        private readonly SemaphoreSlim _sendLock = new SemaphoreSlim(1, 1);
 
         private Uri _endpointUri;
         private string _sessionId;
@@ -415,44 +414,37 @@ namespace MCPForUnity.Editor.Services.Transport.Transports
                 return null;
             }
 
-            byte[] rentedBuffer = System.Buffers.ArrayPool<byte>.Shared.Rent(8192);
-            var buffer = new ArraySegment<byte>(rentedBuffer);
+            // System.Buffers.ArrayPool is not part of Unity 2020.3's .NET 4.x profile.
+            var buffer = new ArraySegment<byte>(new byte[8192]);
             using var ms = new MemoryStream(8192);
 
-            try
+            while (!token.IsCancellationRequested)
             {
-                while (!token.IsCancellationRequested)
+                WebSocketReceiveResult result = await _socket.ReceiveAsync(buffer, token).ConfigureAwait(false);
+
+                if (result.MessageType == WebSocketMessageType.Close)
                 {
-                    WebSocketReceiveResult result = await _socket.ReceiveAsync(buffer, token).ConfigureAwait(false);
-
-                    if (result.MessageType == WebSocketMessageType.Close)
-                    {
-                        await HandleSocketClosureAsync(result.CloseStatusDescription ?? "Server closed connection").ConfigureAwait(false);
-                        return null;
-                    }
-
-                    if (result.Count > 0)
-                    {
-                        ms.Write(buffer.Array!, buffer.Offset, result.Count);
-                    }
-
-                    if (result.EndOfMessage)
-                    {
-                        break;
-                    }
-                }
-
-                if (ms.Length == 0)
-                {
+                    await HandleSocketClosureAsync(result.CloseStatusDescription ?? "Server closed connection").ConfigureAwait(false);
                     return null;
                 }
 
-                return Encoding.UTF8.GetString(ms.ToArray());
+                if (result.Count > 0)
+                {
+                    ms.Write(buffer.Array!, buffer.Offset, result.Count);
+                }
+
+                if (result.EndOfMessage)
+                {
+                    break;
+                }
             }
-            finally
+
+            if (ms.Length == 0)
             {
-                System.Buffers.ArrayPool<byte>.Shared.Return(rentedBuffer);
+                return null;
             }
+
+            return Encoding.UTF8.GetString(ms.ToArray());
         }
 
         private async Task HandleMessageAsync(string message, CancellationToken token)

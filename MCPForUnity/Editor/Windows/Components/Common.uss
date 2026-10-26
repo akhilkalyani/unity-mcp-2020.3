@@ -37,7 +37,6 @@
     -unity-font-style: bold;
     margin-bottom: 8px;
     padding-bottom: 6px;
-    letter-spacing: 0.3px;
     border-bottom-width: 1px;
     border-bottom-color: rgba(255, 255, 255, 0.08);
 }
@@ -271,7 +270,6 @@
     border-color: rgba(0, 145, 90, 1);
     font-size: 13px;
     -unity-font-style: bold;
-    letter-spacing: 0.3px;
 }
 
 .primary-button:hover {
