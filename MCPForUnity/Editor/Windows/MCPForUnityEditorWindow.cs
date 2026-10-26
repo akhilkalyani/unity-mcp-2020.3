@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using MCPForUnity.Editor.Constants;
 using MCPForUnity.Editor.Helpers;
@@ -82,29 +83,18 @@ namespace MCPForUnity.Editor.Windows
             var existingWindows = UnityEngine.Resources.FindObjectsOfTypeAll<MCPForUnityEditorWindow>();
             MCPForUnityEditorWindow window = null;
 
-            if (existingWindows.Length > 0)
+            // Keep the first usable window and discard the rest: extras are stale hidden tabs, and a window
+            // whose first CreateGUI failed can be left in a dock area that has no container window (seen on
+            // Unity 2020.3). Showing or moving such a window does nothing or throws inside Unity.
+            foreach (var existing in existingWindows)
             {
-                window = existingWindows[0];
-
-                // If multiple instances exist, keep one and close the extras to avoid stale hidden tabs.
-                for (int i = 1; i < existingWindows.Length; i++)
+                if (window == null && existing.guiCreated && IsHosted(existing))
                 {
-                    try
-                    {
-                        existingWindows[i].Close();
-                    }
-                    catch (Exception ex)
-                    {
-                        McpLog.Warn($"Error closing duplicate MCP window: {ex.Message}");
-                    }
+                    window = existing;
                 }
-
-                // A window whose UI was never built (its CreateGUI failed or was not re-run after a domain
-                // reload, as happens on Unity 2020.3) shows up blank, so replace it with a fresh one.
-                if (!window.guiCreated)
+                else
                 {
-                    window.Close();
-                    window = null;
+                    Discard(existing);
                 }
             }
 
@@ -134,8 +124,48 @@ namespace MCPForUnity.Editor.Windows
             window.EnsureGuiCreated();
 
             McpLog.Info($"[Window] Opened: instances={existingWindows.Length}, uiBuilt={window.guiCreated}, " +
-                        $"elements={window.rootVisualElement.childCount}, docked={window.docked}, " +
+                        $"hosted={IsHosted(window)}, docked={window.docked}, " +
                         $"position={window.position}, editor={mainWindow}");
+        }
+
+        private static readonly FieldInfo HostViewField =
+            typeof(EditorWindow).GetField("m_Parent", BindingFlags.Instance | BindingFlags.NonPublic);
+
+        private static readonly PropertyInfo ContainerWindowProperty =
+            HostViewField?.FieldType.GetProperty("window", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+
+        // True when the window sits in a live editor container window. This reads internal editor state;
+        // if that is not available, assume the window is usable, which was the previous behaviour.
+        private static bool IsHosted(EditorWindow window)
+        {
+            if (HostViewField == null || ContainerWindowProperty == null)
+                return true;
+
+            var hostView = HostViewField.GetValue(window) as UnityEngine.Object;
+            if (hostView == null)
+                return false;
+
+            return ContainerWindowProperty.GetValue(hostView) as UnityEngine.Object != null;
+        }
+
+        private static void Discard(MCPForUnityEditorWindow window)
+        {
+            if (IsHosted(window))
+            {
+                try
+                {
+                    window.Close();
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    McpLog.Warn($"Error closing stale MCP window: {ex.Message}");
+                }
+            }
+
+            // Closing an orphaned window throws inside Unity's dock code, so destroy it directly.
+            if (window != null)
+                DestroyImmediate(window);
         }
 
         // Unity 2020.3 does not reliably call CreateGUI again for a window restored after a domain
